@@ -1,5 +1,6 @@
 import pygame
 
+clock = pygame.time.Clock()
 pygame.init()
 
 width = 600
@@ -39,6 +40,7 @@ while running:
             if event.key == pygame.K_DOWN:
                 dy = speed
                 dx = 0
+    clock.tick(10)
 
     x += dx
     y += dy
