@@ -28,7 +28,7 @@ food_img = pygame.transform.scale(food_img, (cell_size, cell_size))
 eat_sound = pygame.mixer.Sound("eat.flac")
 death_sound = pygame.mixer.Sound("death.ogg")
 
-eat_sound.set_volume(0.5)
+eat_sound.set_volume(0.2)
 death_sound.set_volume(0.6)
 
 pygame.mixer.music.load("music.mp3")
@@ -129,6 +129,7 @@ while running:
                     game_over = False
                     paused = False
                     death_played = False
+                    pygame.mixer.music.play(-1)  # restart music
 
     # Movement
     if not game_over and not paused and (dx != 0 or dy != 0):
@@ -146,6 +147,7 @@ while running:
             ):
                 game_over = True
                 if not death_played:
+                    pygame.mixer.music.stop()  # STOP MUSIC
                     death_sound.play()
                     death_played = True
 
@@ -220,6 +222,19 @@ while running:
 
     screen.blit(score_text, (10, game_height + 8))
     screen.blit(highscore_text, (width // 2 - 80, game_height + 8))
+
+    # Pause
+    if paused:
+        pause_text = big_font.render("PAUSED", True, (255, 255, 0))
+        screen.blit(pause_text, (width//2 - 100, height//2 - 30))
+
+    # Game Over
+    if game_over:
+        over_text = big_font.render("GAME OVER", True, (255, 0, 0))
+        restart_text = font.render("Press R to Restart", True, (255, 255, 255))
+
+        screen.blit(over_text, (width//2 - 140, height//2 - 50))
+        screen.blit(restart_text, (width//2 - 110, height//2 + 10))
 
     pygame.display.update()
 
