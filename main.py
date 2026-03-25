@@ -12,12 +12,16 @@ pygame.display.set_caption("Snake Game")
 
 cell_size = 20
 
-# αρχικό snake
+# score
+score = 0
+font = pygame.font.SysFont(None, 35)
+
+# snake
 snake = [(300, 200)]
 dx = 0
 dy = 0
 
-# food θέση
+# food
 food_x = random.randrange(0, width, cell_size)
 food_y = random.randrange(0, height, cell_size)
 
@@ -42,24 +46,24 @@ while running:
                 dx = 0
                 dy = 1
 
-    # αν δεν έχει πατηθεί κατεύθυνση ακόμα, δεν κουνιέται
     if dx != 0 or dy != 0:
         head_x, head_y = snake[0]
         new_head = (head_x + dx * cell_size, head_y + dy * cell_size)
 
-        # game over στα όρια
+        # wall collision
         if new_head[0] < 0 or new_head[0] >= width or new_head[1] < 0 or new_head[1] >= height:
             running = False
 
-        # game over αν χτυπήσει τον εαυτό του
+        # self collision
         elif new_head in snake:
             running = False
 
         else:
             snake.insert(0, new_head)
 
-            # αν φάει food, μεγαλώνει
+            # eat food
             if new_head[0] == food_x and new_head[1] == food_y:
+                score += 1
                 food_x = random.randrange(0, width, cell_size)
                 food_y = random.randrange(0, height, cell_size)
             else:
@@ -71,9 +75,13 @@ while running:
     # food
     pygame.draw.rect(screen, (255, 0, 0), (food_x, food_y, cell_size, cell_size))
 
-    # snake body
+    # snake
     for segment in snake:
         pygame.draw.rect(screen, (0, 255, 0), (segment[0], segment[1], cell_size, cell_size))
+
+    # score display
+    score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+    screen.blit(score_text, (10, 10))
 
     pygame.display.update()
 
