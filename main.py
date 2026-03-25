@@ -135,30 +135,38 @@ while running:
     # Draw
     screen.fill((0, 0, 0))
 
-    # Grid
+    # Rounded grid background
+    padding = 3
     for x in range(0, width, cell_size):
-        pygame.draw.line(screen, (40, 40, 40), (x, 0), (x, game_height))
-    for y in range(0, game_height, cell_size):
-        pygame.draw.line(screen, (40, 40, 40), (0, y), (width, y))
+        for y in range(0, game_height, cell_size):
+            rect = pygame.Rect(
+                x + padding,
+                y + padding,
+                cell_size - padding*2,
+                cell_size - padding*2
+            )
+            pygame.draw.rect(screen, (30, 30, 30), rect, border_radius=6)
 
-    # Snake (rounded 🔥)
+    # Snake (rounded square 🔥)
     for i, segment in enumerate(snake):
         color = (0, 255, 0) if i == 0 else (0, 200, 0)
-        pygame.draw.circle(
-            screen,
-            color,
-            (segment[0] + cell_size//2, segment[1] + cell_size//2),
-            cell_size//2
+
+        rect = pygame.Rect(
+            segment[0] + padding,
+            segment[1] + padding,
+            cell_size - padding*2,
+            cell_size - padding*2
         )
+
+        pygame.draw.rect(screen, color, rect, border_radius=8)
 
     # Food
     screen.blit(food_img, (food_x, food_y))
 
-    # UI background
+    # UI
     pygame.draw.rect(screen, (30, 30, 30), (0, game_height, width, ui_height))
     pygame.draw.line(screen, (80, 80, 80), (0, game_height), (width, game_height), 2)
 
-    # Text
     score_text = font.render(f"Score: {score}", True, (255, 255, 255))
     highscore_text = font.render(f"Highscore: {highscore}", True, (200, 200, 200))
 
@@ -170,7 +178,7 @@ while running:
         pause_text = big_font.render("PAUSED", True, (255, 255, 0))
         screen.blit(pause_text, (width//2 - 100, height//2 - 30))
 
-    # Game over
+    # Game Over
     if game_over:
         over_text = big_font.render("GAME OVER", True, (255, 0, 0))
         restart_text = font.render("Press R to Restart", True, (255, 255, 255))
