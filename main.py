@@ -18,7 +18,7 @@ pygame.display.set_caption("🐍 Snake Game")
 clock = pygame.time.Clock()
 
 # ===== FONTS =====
-font = pygame.font.SysFont("Arial", 20)
+font = pygame.font.SysFont("Arial", 22)
 big_font = pygame.font.SysFont("Arial", 40)
 
 # ===== COLORS =====
@@ -38,20 +38,25 @@ eat_sound = pygame.mixer.Sound(EAT_FILE)
 death_sound = pygame.mixer.Sound(DEATH_FILE)
 
 pygame.mixer.music.load(MUSIC_FILE)
+pygame.mixer.music.set_volume(0.3)
 
-# ===== GAME STATES =====
+# ===== STATES =====
 MENU = "menu"
-SETTINGS = "settings"
 PLAYING = "playing"
 GAME_OVER = "game_over"
 
 state = MENU
 
-# ===== SETTINGS VALUES =====
-volume = 0.3
-difficulty = 10  # FPS
-
-pygame.mixer.music.set_volume(volume)
+# ===== DIFFICULTY SYSTEM =====
+def get_speed(score):
+    if score < 5:
+        return 8, "EASY"
+    elif score < 10:
+        return 12, "MEDIUM"
+    elif score < 20:
+        return 16, "HARD"
+    else:
+        return 22, "IMPOSSIBLE"
 
 # ===== RESET =====
 def reset_game():
@@ -65,6 +70,31 @@ snake, dx, dy, food, score = reset_game()
 
 death_played = False
 
+# ===== BUTTON CLASS =====
+class Button:
+    def __init__(self, text, x, y, w, h):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.text = text
+
+    def draw(self):
+        mouse = pygame.mouse.get_pos()
+        color = (60,60,60)
+
+        if self.rect.collidepoint(mouse):
+            color = (100,100,100)
+
+        pygame.draw.rect(screen, color, self.rect, border_radius=8)
+
+        txt = font.render(self.text, True, (255,255,255))
+        screen.blit(txt, (self.rect.x + 20, self.rect.y + 10))
+
+    def clicked(self, event):
+        return event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos)
+
+# ===== BUTTONS =====
+start_btn = Button("Start Game", width//2 - 100, 180, 200, 40)
+quit_btn = Button("Quit", width//2 - 100, 240, 200, 40)
+
 # ===== MAIN LOOP =====
 while True:
 
@@ -73,36 +103,20 @@ while True:
             pygame.quit()
             sys.exit()
 
-        if event.type == pygame.KEYDOWN:
+        # ===== MENU =====
+        if state == MENU:
+            if start_btn.clicked(event):
+                snake, dx, dy, food, score = reset_game()
+                pygame.mixer.music.play(-1)
+                state = PLAYING
 
-            # ===== MENU =====
-            if state == MENU:
-                if event.key == pygame.K_1:
-                    state = PLAYING
-                    pygame.mixer.music.play(-1)
-                if event.key == pygame.K_2:
-                    state = SETTINGS
+            if quit_btn.clicked(event):
+                pygame.quit()
+                sys.exit()
 
-            # ===== SETTINGS =====
-            elif state == SETTINGS:
-                if event.key == pygame.K_LEFT:
-                    volume = max(0, volume - 0.1)
-                    pygame.mixer.music.set_volume(volume)
-                elif event.key == pygame.K_RIGHT:
-                    volume = min(1, volume + 0.1)
-                    pygame.mixer.music.set_volume(volume)
-
-                elif event.key == pygame.K_UP:
-                    difficulty = min(20, difficulty + 2)
-                elif event.key == pygame.K_DOWN:
-                    difficulty = max(5, difficulty - 2)
-
-                elif event.key == pygame.K_ESCAPE:
-                    state = MENU
-
-            # ===== PLAYING =====
-            elif state == PLAYING:
-
+        # ===== PLAYING =====
+        elif state == PLAYING:
+            if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP and dy == 0:
                     dx, dy = 0, -1
                 elif event.key == pygame.K_DOWN and dy == 0:
@@ -112,8 +126,9 @@ while True:
                 elif event.key == pygame.K_RIGHT and dx == 0:
                     dx, dy = 1, 0
 
-            # ===== GAME OVER =====
-            elif state == GAME_OVER:
+        # ===== GAME OVER =====
+        elif state == GAME_OVER:
+            if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     snake, dx, dy, food, score = reset_game()
                     death_sound.stop()
@@ -141,7 +156,7 @@ while True:
             else:
                 snake.pop()
 
-    # ===== DEATH SOUND =====
+    # ===== DEATH =====
     if state == GAME_OVER and not death_played:
         pygame.mixer.music.stop()
         death_sound.play()
@@ -150,31 +165,19 @@ while True:
     # ===== DRAW =====
     screen.fill(bg_color)
 
-    # ===== MENU SCREEN =====
+    # ===== MENU =====
     if state == MENU:
         title = big_font.render("SNAKE GAME", True, (0,255,100))
-        start = font.render("1 - Start Game", True, (255,255,255))
-        settings = font.render("2 - Settings", True, (255,255,255))
-
         screen.blit(title, (width//2 - 140, 100))
-        screen.blit(start, (width//2 - 90, 200))
-        screen.blit(settings, (width//2 - 90, 240))
 
-    # ===== SETTINGS SCREEN =====
-    elif state == SETTINGS:
-        title = big_font.render("SETTINGS", True, (255,255,0))
-
-        vol_text = font.render(f"Volume: {round(volume,1)} (← →)", True, (255,255,255))
-        diff_text = font.render(f"Difficulty: {difficulty} (↑ ↓)", True, (255,255,255))
-        back_text = font.render("ESC - Back", True, (200,200,200))
-
-        screen.blit(title, (width//2 - 120, 100))
-        screen.blit(vol_text, (width//2 - 120, 200))
-        screen.blit(diff_text, (width//2 - 120, 240))
-        screen.blit(back_text, (width//2 - 80, 300))
+        start_btn.draw()
+        quit_btn.draw()
 
     # ===== GAME =====
     elif state == PLAYING or state == GAME_OVER:
+
+        # difficulty
+        speed, diff_text = get_speed(score)
 
         # grid
         for x in range(cols):
@@ -195,10 +198,14 @@ while True:
 
         # UI
         pygame.draw.rect(screen, (30,30,30), (0,height-40,width,40))
-        score_text = font.render(f"Score: {score}", True, (255,255,255))
-        screen.blit(score_text, (10,height-30))
 
-    # ===== GAME OVER SCREEN =====
+        score_text = font.render(f"Score: {score}", True, (255,255,255))
+        diff_label = font.render(diff_text, True, (255,200,0))
+
+        screen.blit(score_text, (10,height-30))
+        screen.blit(diff_label, (width//2 - 40, height-30))
+
+    # ===== GAME OVER =====
     if state == GAME_OVER:
         over = big_font.render("GAME OVER", True, (255,0,0))
         restart = font.render("R - Restart | ESC - Menu", True, (255,255,255))
@@ -207,4 +214,9 @@ while True:
         screen.blit(restart, (width//2 - 140, height//2 + 10))
 
     pygame.display.flip()
-    clock.tick(difficulty)
+
+    if state == PLAYING:
+        speed, _ = get_speed(score)
+        clock.tick(speed)
+    else:
+        clock.tick(60)
