@@ -10,22 +10,29 @@ height = 400
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption("Snake Game")
 
-cell_size = 20
+cell_size = 30
+food_size = 30
 
-# fonts
 font = pygame.font.SysFont(None, 35)
 big_font = pygame.font.SysFont(None, 60)
 
-# 🍔 load burger image
-food_img = pygame.image.load("burger.png")
-food_img = pygame.transform.scale(food_img, (cell_size, cell_size))
+# 🍔 LOAD BURGER (JPG VERSION)
+food_img = pygame.image.load("burger.jpg").convert()
+food_img.set_colorkey((255, 255, 255))  # αφαιρεί άσπρο background
+food_img = pygame.transform.scale(food_img, (food_size, food_size))
+
+def spawn_food(snake):
+    while True:
+        x = random.randrange(0, width, cell_size)
+        y = random.randrange(0, height, cell_size)
+        if (x, y) not in snake:
+            return x, y
 
 def reset_game():
-    snake = [(300, 200)]
+    snake = [(300, 210)]
     dx = 0
     dy = 0
-    food_x = random.randrange(0, width, cell_size)
-    food_y = random.randrange(0, height, cell_size)
+    food_x, food_y = spawn_food(snake)
     score = 0
     return snake, dx, dy, food_x, food_y, score
 
@@ -62,38 +69,35 @@ while running:
         head_x, head_y = snake[0]
         new_head = (head_x + dx * cell_size, head_y + dy * cell_size)
 
-        # wall collision
+        # collision με τοίχο
         if new_head[0] < 0 or new_head[0] >= width or new_head[1] < 0 or new_head[1] >= height:
             game_over = True
 
-        # self collision
+        # collision με τον εαυτό του
         elif new_head in snake:
             game_over = True
 
         else:
             snake.insert(0, new_head)
 
-            # eat food
+            # αν φάει το burger
             if new_head[0] == food_x and new_head[1] == food_y:
                 score += 1
-                food_x = random.randrange(0, width, cell_size)
-                food_y = random.randrange(0, height, cell_size)
+                food_x, food_y = spawn_food(snake)
             else:
                 snake.pop()
 
-    # draw
     screen.fill((20, 20, 20))
 
     if not game_over:
-        # 🍔 burger
+        # draw burger
         screen.blit(food_img, (food_x, food_y))
 
-        # 🐍 snake (rects)
+        # draw snake
         for segment in snake:
             pygame.draw.rect(screen, (0, 200, 0), (segment[0], segment[1], cell_size, cell_size))
-            pygame.draw.rect(screen, (0, 255, 0), (segment[0]+2, segment[1]+2, cell_size-4, cell_size-4))
+            pygame.draw.rect(screen, (0, 255, 0), (segment[0] + 2, segment[1] + 2, cell_size - 4, cell_size - 4))
 
-        # score
         score_text = font.render(f"Score: {score}", True, (255, 255, 255))
         screen.blit(score_text, (10, 10))
 
@@ -107,6 +111,6 @@ while running:
         screen.blit(restart_text, (180, 250))
 
     pygame.display.update()
-    clock.tick(5)
+    clock.tick(7)
 
 pygame.quit()
