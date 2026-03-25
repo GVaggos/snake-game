@@ -4,64 +4,55 @@ import os
 
 pygame.init()
 
-clock = pygame.time.Clock()
-
+# Window
+width, height = 600, 400
 cell_size = 30
-width = (600 // cell_size) * cell_size
-height = (400 // cell_size) * cell_size
+ui_height = 40
+game_height = height - ui_height
 
-hud_height = 50
-screen = pygame.display.set_mode((width, height + hud_height))
+screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption("Snake Game")
 
-food_size = 40
+clock = pygame.time.Clock()
 
-font = pygame.font.SysFont(None, 35)
-big_font = pygame.font.SysFont(None, 70)
+# Fonts
+font = pygame.font.SysFont("Arial", 22)
+big_font = pygame.font.SysFont("Arial", 48)
 
-# 🍔 LOAD BURGER
-try:
-    food_img = pygame.image.load("burger.png").convert_alpha()
-except:
-    food_img = pygame.image.load("burger.jpg").convert()
-    food_img.set_colorkey((255, 255, 255))
+# Load burger
+food_img = pygame.image.load("burger.png").convert()
+food_img = pygame.transform.scale(food_img, (cell_size, cell_size))
 
-food_img = pygame.transform.scale(food_img, (food_size, food_size))
+# Highscore
+HIGHSCORE_FILE = "highscore.txt"
 
-
-# 🏆 HIGH SCORE
 def load_highscore():
-    if not os.path.exists("highscore.txt"):
-        with open("highscore.txt", "w") as f:
-            f.write("0")
-    with open("highscore.txt", "r") as f:
+    if not os.path.exists(HIGHSCORE_FILE):
+        return 0
+    with open(HIGHSCORE_FILE, "r") as f:
         return int(f.read())
 
-
 def save_highscore(score):
-    with open("highscore.txt", "w") as f:
+    with open(HIGHSCORE_FILE, "w") as f:
         f.write(str(score))
-
 
 highscore = load_highscore()
 
-
+# Food spawn
 def spawn_food(snake):
     while True:
         x = random.randrange(0, width, cell_size)
-        y = random.randrange(0, height, cell_size)
+        y = random.randrange(0, game_height, cell_size)
         if (x, y) not in snake:
             return x, y
 
-
+# Reset
 def reset_game():
-    start_x = (width // 2) // cell_size * cell_size
-    start_y = (height // 2) // cell_size * cell_size
+    start_x = (width // 2 // cell_size) * cell_size
+    start_y = (game_height // 2 // cell_size) * cell_size
 
     snake = [(start_x, start_y)]
-    dx = 0
-    dy = 0
-
+    dx, dy = 0, 0
     food_x, food_y = spawn_food(snake)
     score = 0
 
@@ -74,43 +65,42 @@ game_over = False
 paused = False
 running = True
 
-# 🎯 Animation + Smooth movement
-eat_animation = 0
 move_timer = 0
-move_delay = 120  # ms (μικρότερο = πιο smooth/γρήγορο)
+base_speed = 180
+min_speed = 90
 
 while running:
     dt = clock.tick(60)
     move_timer += dt
+
+    move_delay = max(min_speed, base_speed - score * 4)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
         if event.type == pygame.KEYDOWN:
+
             if event.key == pygame.K_p:
                 paused = not paused
 
             if not game_over and not paused:
                 if event.key == pygame.K_LEFT and dx != 1:
-                    dx = -1
-                    dy = 0
+                    dx, dy = -1, 0
                 if event.key == pygame.K_RIGHT and dx != -1:
-                    dx = 1
-                    dy = 0
+                    dx, dy = 1, 0
                 if event.key == pygame.K_UP and dy != 1:
-                    dx = 0
-                    dy = -1
+                    dx, dy = 0, -1
                 if event.key == pygame.K_DOWN and dy != -1:
-                    dx = 0
-                    dy = 1
-            elif game_over:
+                    dx, dy = 0, 1
+
+            if game_over:
                 if event.key == pygame.K_r:
                     snake, dx, dy, food_x, food_y, score = reset_game()
                     game_over = False
                     paused = False
 
-    # 🧠 Movement step
+    # Movement
     if not game_over and not paused and (dx != 0 or dy != 0):
         if move_timer >= move_delay:
             move_timer = 0
@@ -118,104 +108,75 @@ while running:
             head_x, head_y = snake[0]
             new_head = (head_x + dx * cell_size, head_y + dy * cell_size)
 
+            # Wall collision
             if (
-                new_head[0] < 0 or
-                new_head[0] >= width or
-                new_head[1] < 0 or
-                new_head[1] >= height
+                new_head[0] < 0 or new_head[0] >= width or
+                new_head[1] < 0 or new_head[1] >= game_height
             ):
                 game_over = True
 
-            elif new_head in snake:
+            # Self collision
+            if new_head in snake:
                 game_over = True
 
+            snake.insert(0, new_head)
+
+            # Food collision
+            if new_head == (food_x, food_y):
+                score += 1
+                food_x, food_y = spawn_food(snake)
+
+                if score > highscore:
+                    highscore = score
+                    save_highscore(highscore)
             else:
-                snake.insert(0, new_head)
+                snake.pop()
 
-                if new_head[0] == food_x and new_head[1] == food_y:
-                    score += 1
-                    eat_animation = 6
-                    food_x, food_y = spawn_food(snake)
-                else:
-                    snake.pop()
+    # Draw
+    screen.fill((0, 0, 0))
 
-    # 🎨 BACKGROUND
-    screen.fill((15, 15, 15))
-
-    # 🔲 GRID
+    # Grid
     for x in range(0, width, cell_size):
-        pygame.draw.line(screen, (30, 30, 30), (x, 0), (x, height))
-    for y in range(0, height, cell_size):
-        pygame.draw.line(screen, (30, 30, 30), (0, y), (width, y))
+        pygame.draw.line(screen, (40, 40, 40), (x, 0), (x, game_height))
+    for y in range(0, game_height, cell_size):
+        pygame.draw.line(screen, (40, 40, 40), (0, y), (width, y))
 
-    # 🍔 burger
-    screen.blit(food_img, (food_x - 5, food_y - 5))
-
-    # 🎯 Animation decay
-    if eat_animation > 0:
-        eat_animation -= 1
-
-    # 🟩 Snake draw (smooth look)
+    # Snake (rounded 🔥)
     for i, segment in enumerate(snake):
-        offset = 0
-
-        if i == 0 and eat_animation > 0:
-            offset = 6
-
-        pygame.draw.rect(
+        color = (0, 255, 0) if i == 0 else (0, 200, 0)
+        pygame.draw.circle(
             screen,
-            (0, 200, 0),
-            (
-                segment[0] - offset // 2,
-                segment[1] - offset // 2,
-                cell_size + offset,
-                cell_size + offset
-            ),
-            border_radius=6
+            color,
+            (segment[0] + cell_size//2, segment[1] + cell_size//2),
+            cell_size//2
         )
 
-        pygame.draw.rect(
-            screen,
-            (0, 255, 0),
-            (
-                segment[0] + 4 - offset // 2,
-                segment[1] + 4 - offset // 2,
-                cell_size - 8 + offset,
-                cell_size - 8 + offset
-            ),
-            border_radius=4
-        )
+    # Food
+    screen.blit(food_img, (food_x, food_y))
 
-    # 🟡 PAUSE
+    # UI background
+    pygame.draw.rect(screen, (30, 30, 30), (0, game_height, width, ui_height))
+    pygame.draw.line(screen, (80, 80, 80), (0, game_height), (width, game_height), 2)
+
+    # Text
+    score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+    highscore_text = font.render(f"Highscore: {highscore}", True, (200, 200, 200))
+
+    screen.blit(score_text, (10, game_height + 8))
+    screen.blit(highscore_text, (width // 2 - 80, game_height + 8))
+
+    # Pause
     if paused:
         pause_text = big_font.render("PAUSED", True, (255, 255, 0))
-        screen.blit(pause_text, (200, 150))
+        screen.blit(pause_text, (width//2 - 100, height//2 - 30))
 
-    # 🟥 GAME OVER
+    # Game over
     if game_over:
-        if score > highscore:
-            highscore = score
-            save_highscore(highscore)
-
-        game_over_text = big_font.render("GAME OVER", True, (255, 0, 0))
-        score_text = font.render(f"Score: {score}", True, (255, 255, 255))
-        high_text = font.render(f"Highscore: {highscore}", True, (200, 200, 200))
+        over_text = big_font.render("GAME OVER", True, (255, 0, 0))
         restart_text = font.render("Press R to Restart", True, (255, 255, 255))
 
-        screen.blit(game_over_text, (140, 80))
-        screen.blit(score_text, (240, 160))
-        screen.blit(high_text, (220, 200))
-        screen.blit(restart_text, (180, 260))
-
-    # 🔳 HUD
-    pygame.draw.rect(screen, (25, 25, 25), (0, height, width, hud_height))
-    pygame.draw.line(screen, (50, 50, 50), (0, height), (width, height), 2)
-
-    score_text = font.render(f"Score: {score}", True, (255, 255, 255))
-    high_text = font.render(f"Highscore: {highscore}", True, (180, 180, 180))
-
-    screen.blit(score_text, (10, height + 10))
-    screen.blit(high_text, (200, height + 10))
+        screen.blit(over_text, (width//2 - 140, height//2 - 50))
+        screen.blit(restart_text, (width//2 - 110, height//2 + 10))
 
     pygame.display.update()
 
