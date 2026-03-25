@@ -4,6 +4,7 @@ import os
 import math
 
 pygame.init()
+pygame.mixer.init()
 
 # Window
 width, height = 600, 400
@@ -20,9 +21,19 @@ clock = pygame.time.Clock()
 font = pygame.font.SysFont("Arial", 22)
 big_font = pygame.font.SysFont("Arial", 48)
 
-# Load burger
+# Load assets
 food_img = pygame.image.load("burger.png").convert()
 food_img = pygame.transform.scale(food_img, (cell_size, cell_size))
+
+eat_sound = pygame.mixer.Sound("eat.flac")
+death_sound = pygame.mixer.Sound("death.ogg")
+
+eat_sound.set_volume(0.5)
+death_sound.set_volume(0.6)
+
+pygame.mixer.music.load("music.mp3")
+pygame.mixer.music.set_volume(0.2)
+pygame.mixer.music.play(-1)
 
 # Highscore
 HIGHSCORE_FILE = "highscore.txt"
@@ -78,12 +89,12 @@ snake, dx, dy, food_x, food_y, score = reset_game()
 game_over = False
 paused = False
 running = True
+death_played = False
 
 move_timer = 0
 base_speed = 180
 min_speed = 90
 
-# 🔥 animation timer
 food_timer = 0
 
 while running:
@@ -117,6 +128,7 @@ while running:
                     snake, dx, dy, food_x, food_y, score = reset_game()
                     game_over = False
                     paused = False
+                    death_played = False
 
     # Movement
     if not game_over and not paused and (dx != 0 or dy != 0):
@@ -126,22 +138,22 @@ while running:
             head_x, head_y = snake[0]
             new_head = (head_x + dx * cell_size, head_y + dy * cell_size)
 
-            # Wall collision
+            # Collision
             if (
                 new_head[0] < 0 or new_head[0] >= width or
-                new_head[1] < 0 or new_head[1] >= game_height
+                new_head[1] < 0 or new_head[1] >= game_height or
+                new_head in snake
             ):
                 game_over = True
-
-            # Self collision
-            if new_head in snake:
-                game_over = True
+                if not death_played:
+                    death_sound.play()
+                    death_played = True
 
             snake.insert(0, new_head)
 
-            # Food collision
             if new_head == (food_x, food_y):
                 score += 1
+                eat_sound.play()
                 create_particles(food_x, food_y)
                 food_x, food_y = spawn_food(snake)
 
@@ -154,8 +166,9 @@ while running:
     # Draw
     screen.fill((0, 0, 0))
 
-    # Grid
     padding = 3
+
+    # Grid
     for x in range(0, width, cell_size):
         for y in range(0, game_height, cell_size):
             rect = pygame.Rect(
@@ -179,7 +192,7 @@ while running:
 
         pygame.draw.rect(screen, color, rect, border_radius=8)
 
-    # 🍔 Animated food
+    # Animated food
     offset_y = int(math.sin(food_timer * 0.005) * 5)
     screen.blit(food_img, (food_x, food_y + offset_y))
 
@@ -194,16 +207,9 @@ while running:
             particles.remove(particle)
             continue
 
-        glow_surface = pygame.Surface((20, 20), pygame.SRCALPHA)
-
-        pygame.draw.circle(
-            glow_surface,
-            (0, 255, 0, int(particle[5])),
-            (10, 10),
-            int(particle[4])
-        )
-
-        screen.blit(glow_surface, (particle[0], particle[1]))
+        surf = pygame.Surface((20, 20), pygame.SRCALPHA)
+        pygame.draw.circle(surf, (0, 255, 0, int(particle[5])), (10, 10), int(particle[4]))
+        screen.blit(surf, (particle[0], particle[1]))
 
     # UI
     pygame.draw.rect(screen, (30, 30, 30), (0, game_height, width, ui_height))
@@ -214,19 +220,6 @@ while running:
 
     screen.blit(score_text, (10, game_height + 8))
     screen.blit(highscore_text, (width // 2 - 80, game_height + 8))
-
-    # Pause
-    if paused:
-        pause_text = big_font.render("PAUSED", True, (255, 255, 0))
-        screen.blit(pause_text, (width//2 - 100, height//2 - 30))
-
-    # Game Over
-    if game_over:
-        over_text = big_font.render("GAME OVER", True, (255, 0, 0))
-        restart_text = font.render("Press R to Restart", True, (255, 255, 255))
-
-        screen.blit(over_text, (width//2 - 140, height//2 - 50))
-        screen.blit(restart_text, (width//2 - 110, height//2 + 10))
 
     pygame.display.update()
 
