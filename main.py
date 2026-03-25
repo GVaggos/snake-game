@@ -38,6 +38,19 @@ def save_highscore(score):
 
 highscore = load_highscore()
 
+# Particles
+particles = []
+
+def create_particles(x, y):
+    for _ in range(15):
+        particles.append([
+            x, y,
+            random.uniform(-2, 2),
+            random.uniform(-2, 2),
+            random.randint(4, 7),
+            255
+        ])
+
 # Food spawn
 def spawn_food(snake):
     while True:
@@ -124,6 +137,7 @@ while running:
             # Food collision
             if new_head == (food_x, food_y):
                 score += 1
+                create_particles(food_x, food_y)
                 food_x, food_y = spawn_food(snake)
 
                 if score > highscore:
@@ -135,7 +149,7 @@ while running:
     # Draw
     screen.fill((0, 0, 0))
 
-    # Rounded grid background
+    # Rounded grid
     padding = 3
     for x in range(0, width, cell_size):
         for y in range(0, game_height, cell_size):
@@ -147,9 +161,9 @@ while running:
             )
             pygame.draw.rect(screen, (30, 30, 30), rect, border_radius=6)
 
-    # Snake (rounded square 🔥)
+    # Snake (clean rounded square)
     for i, segment in enumerate(snake):
-        color = (0, 255, 0, 55) if i == 0 else (0, 200, 0)
+        color = (0, 255, 0) if i == 0 else (0, 200, 0)
 
         rect = pygame.Rect(
             segment[0] + padding,
@@ -162,6 +176,28 @@ while running:
 
     # Food
     screen.blit(food_img, (food_x, food_y))
+
+    # Particles
+    for particle in particles[:]:
+        particle[0] += particle[2]
+        particle[1] += particle[3]
+        particle[4] -= 0.2
+        particle[5] -= 5
+
+        if particle[5] <= 0:
+            particles.remove(particle)
+            continue
+
+        glow_surface = pygame.Surface((20, 20), pygame.SRCALPHA)
+
+        pygame.draw.circle(
+            glow_surface,
+            (0, 255, 0, int(particle[5])),
+            (10, 10),
+            int(particle[4])
+        )
+
+        screen.blit(glow_surface, (particle[0], particle[1]))
 
     # UI
     pygame.draw.rect(screen, (30, 30, 30), (0, game_height, width, ui_height))
