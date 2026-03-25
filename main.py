@@ -149,7 +149,7 @@ while running:
 
     # Snake (rounded square 🔥)
     for i, segment in enumerate(snake):
-        color = (0, 255, 0) if i == 0 else (0, 200, 0)
+        color = (0, 255, 0, 55) if i == 0 else (0, 200, 0)
 
         rect = pygame.Rect(
             segment[0] + padding,
