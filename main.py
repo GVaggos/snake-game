@@ -1,6 +1,7 @@
 import pygame
 import random
 import os
+import math
 
 pygame.init()
 
@@ -82,9 +83,13 @@ move_timer = 0
 base_speed = 180
 min_speed = 90
 
+# 🔥 animation timer
+food_timer = 0
+
 while running:
     dt = clock.tick(60)
     move_timer += dt
+    food_timer += dt
 
     move_delay = max(min_speed, base_speed - score * 4)
 
@@ -149,7 +154,7 @@ while running:
     # Draw
     screen.fill((0, 0, 0))
 
-    # Rounded grid
+    # Grid
     padding = 3
     for x in range(0, width, cell_size):
         for y in range(0, game_height, cell_size):
@@ -161,7 +166,7 @@ while running:
             )
             pygame.draw.rect(screen, (30, 30, 30), rect, border_radius=6)
 
-    # Snake (clean rounded square)
+    # Snake
     for i, segment in enumerate(snake):
         color = (0, 255, 0) if i == 0 else (0, 200, 0)
 
@@ -174,8 +179,9 @@ while running:
 
         pygame.draw.rect(screen, color, rect, border_radius=8)
 
-    # Food
-    screen.blit(food_img, (food_x, food_y))
+    # 🍔 Animated food
+    offset_y = int(math.sin(food_timer * 0.005) * 5)
+    screen.blit(food_img, (food_x, food_y + offset_y))
 
     # Particles
     for particle in particles[:]:
