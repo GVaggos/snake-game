@@ -29,10 +29,11 @@ A modern Snake game built with Python and Pygame, featuring smooth gameplay, sou
 
 ## 🚀 Run the Game
 
-```bash
+
 pip install pygame
 python main.py
 
+---
 
 ## 📚 What I Learned
 - Game loop design
